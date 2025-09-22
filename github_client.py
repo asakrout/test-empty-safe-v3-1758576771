@@ -90,9 +90,19 @@ class GitHubClient:
                 repo.index.commit('Initial commit')
                 logger.info("Committed initial changes")
             
-            # Push to remote
-            origin.push(refspec=f'{branch}:{branch}')
-            logger.info(f"Successfully pushed to {repo_url}")
+            # Push to remote using git command directly to avoid warnings
+            try:
+                # Use git command directly for cleaner output
+                repo.git.push('origin', f'{branch}:{branch}')
+                logger.info(f"Successfully pushed to {repo_url}")
+            except Exception as push_error:
+                # If push fails, try force push for initial setup
+                try:
+                    repo.git.push('origin', f'{branch}:{branch}', force=True)
+                    logger.info(f"Successfully force pushed to {repo_url}")
+                except Exception as force_error:
+                    logger.error(f"Failed to push to {repo_url}: {force_error}")
+                    raise force_error
             
             return {
                 "success": True,
