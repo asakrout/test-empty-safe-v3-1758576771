@@ -189,6 +189,57 @@ def protect(repo_name, branch, type):
         sys.exit(1)
 
 @cli.command()
+@click.argument('repo_name')
+@click.argument('branch_name')
+def create_branch(repo_name, branch_name):
+    """Create a new branch in an existing repository."""
+    try:
+        creator = RepositoryCreator()
+        
+        # Get the repository
+        repo = creator.github_client.get_repository(repo_name)
+        if not repo:
+            click.echo(click.style(f"❌ Repository {repo_name} not found", fg="red"))
+            sys.exit(1)
+        
+        # Create the branch from main
+        try:
+            main_branch = repo.get_branch("main")
+            new_branch = repo.create_git_ref(
+                ref=f"refs/heads/{branch_name}",
+                sha=main_branch.commit.sha
+            )
+            
+            click.echo(click.style("✅ Branch created successfully!", fg="green"))
+            click.echo(f"Repository: {repo_name}")
+            click.echo(f"Branch: {branch_name}")
+            
+            # If the branch name contains 'safe', apply protection
+            if 'safe' in branch_name.lower():
+                click.echo(click.style("🛡️ Applying safe branch protection...", fg="blue"))
+                safe_rules = creator.github_client.get_branch_protection_rules("safe")
+                protection_result = creator.github_client.create_branch_protection(
+                    repo_name=repo_name,
+                    branch=branch_name,
+                    protection_rules=safe_rules
+                )
+                
+                if protection_result["success"]:
+                    click.echo(click.style(f"✅ Safe branch protection applied to {branch_name}", fg="green"))
+                else:
+                    click.echo(click.style(f"⚠️ Failed to apply safe branch protection: {protection_result['error']}", fg="yellow"))
+            
+        except Exception as e:
+            click.echo(click.style(f"❌ Failed to create branch: {e}", fg="red"))
+            sys.exit(1)
+            
+    except Exception as e:
+        click.echo(click.style(f"❌ Unexpected error: {e}", fg="red"))
+        import traceback
+        click.echo(f"Full error details: {traceback.format_exc()}")
+        sys.exit(1)
+
+@cli.command()
 def setup():
     """Setup GitHub credentials and configuration."""
     click.echo("🔧 Setting up GitHub Repository Creator...")
