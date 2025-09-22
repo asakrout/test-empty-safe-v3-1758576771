@@ -86,43 +86,21 @@ class RepositoryCreator:
     
     def _apply_branch_protections(self, repo_name: str) -> Dict[str, Any]:
         """Apply branch protection rules to the repository."""
-        protection_results = {}
-        
         try:
-            # Apply protection to main branch
-            main_rules = self.github_client.get_branch_protection_rules("main")
-            main_result = self.github_client.create_branch_protection(
-                repo_name=repo_name,
-                branch="main",
-                protection_rules=main_rules
-            )
-            protection_results["main"] = main_result
-            
-            # Create branch protection rule for *safe* pattern
-            safe_rules = self.github_client.get_branch_protection_rules("safe")
-            safe_rule_result = self.github_client.create_branch_protection_rule(
-                repo_name=repo_name,
-                pattern=Config.SAFE_BRANCH_PATTERN,
-                protection_rules=safe_rules
-            )
-            protection_results["safe_pattern_rule"] = safe_rule_result
+            # Create branch protection rules for main and *safe* pattern
+            result = self.github_client.create_branch_protection_rules(repo_name)
             
             logger.info("Branch protection setup complete:")
             logger.info("- main branch: protected")
-            logger.info(f"- {Config.SAFE_BRANCH_PATTERN} pattern rule: created (automatically protects any branch matching this pattern)")
+            logger.info(f"- {Config.SAFE_BRANCH_PATTERN} pattern: configured")
             
-            return {
-                "success": True,
-                "results": protection_results,
-                "message": f"Branch protections applied: main branch protected, {Config.SAFE_BRANCH_PATTERN} pattern rule created"
-            }
+            return result
             
         except Exception as e:
             logger.error(f"Failed to apply branch protections: {e}")
             return {
                 "success": False,
-                "error": str(e),
-                "results": protection_results
+                "error": str(e)
             }
     
     def create_from_template(

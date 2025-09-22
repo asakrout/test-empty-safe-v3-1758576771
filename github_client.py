@@ -177,13 +177,11 @@ class GitHubClient:
                 "error": str(e)
             }
     
-    def create_branch_protection_rule(
+    def create_branch_protection_rules(
         self, 
-        repo_name: str, 
-        pattern: str,
-        protection_rules: Dict[str, Any]
+        repo_name: str
     ) -> Dict[str, Any]:
-        """Create a branch protection rule with a pattern using GitHub's branch protection API."""
+        """Create branch protection rules for main and *safe* patterns using Repository Rules API."""
         try:
             repo = self.get_repository(repo_name)
             if not repo:
@@ -192,45 +190,85 @@ class GitHubClient:
                     "error": f"Repository {repo_name} not found"
                 }
             
-            # Use the regular branch protection API with the pattern as the branch name
             import requests
             
-            url = f"https://api.github.com/repos/{self.username}/{repo_name}/branches/{pattern}/protection"
+            # Get protection rules
+            main_rules = self.get_branch_protection_rules("main")
+            safe_rules = self.get_branch_protection_rules("safe")
+            
+            results = {}
+            
+            # Protect main branch using traditional API
+            main_url = f"https://api.github.com/repos/{self.username}/{repo_name}/branches/main/protection"
             headers = {
                 "Accept": "application/vnd.github+json",
                 "Authorization": f"token {self.token}",
                 "X-GitHub-Api-Version": "2022-11-28"
             }
             
-            # Prepare the protection rules payload
-            payload = {
+            main_payload = {
                 "required_status_checks": None,
-                "enforce_admins": protection_rules.get('enforce_admins', False),
-                "required_pull_request_reviews": protection_rules.get('required_pull_request_reviews'),
-                "restrictions": protection_rules.get('restrictions'),
-                "allow_force_pushes": protection_rules.get('allow_force_pushes', False),
-                "allow_deletions": protection_rules.get('allow_deletions', False),
+                "enforce_admins": main_rules.get('enforce_admins', False),
+                "required_pull_request_reviews": main_rules.get('required_pull_request_reviews'),
+                "restrictions": main_rules.get('restrictions'),
+                "allow_force_pushes": main_rules.get('allow_force_pushes', False),
+                "allow_deletions": main_rules.get('allow_deletions', False),
                 "required_conversation_resolution": True,
                 "require_linear_history": True
             }
             
-            response = requests.put(url, headers=headers, json=payload)
-            
-            if response.status_code == 200:
-                logger.info(f"Successfully created branch protection rule for pattern {pattern} in {repo_name}")
-                return {
-                    "success": True,
-                    "message": f"Branch protection rule created for pattern {pattern}"
-                }
+            main_response = requests.put(main_url, headers=headers, json=main_payload)
+            if main_response.status_code == 200:
+                results["main"] = {"success": True, "message": "Main branch protected"}
+                logger.info(f"Successfully protected main branch in {repo_name}")
             else:
-                logger.error(f"Failed to create branch protection rule: {response.status_code} - {response.text}")
-                return {
-                    "success": False,
-                    "error": f"HTTP {response.status_code}: {response.text}"
-                }
+                results["main"] = {"success": False, "error": f"HTTP {main_response.status_code}: {main_response.text}"}
+                logger.error(f"Failed to protect main branch: {main_response.status_code} - {main_response.text}")
+            
+            # Create repository rule for *safe* pattern using Repository Rules API
+            rules_url = f"https://api.github.com/repos/{self.username}/{repo_name}/rules/branches"
+            rules_payload = {
+                "name": f"Protect {Config.SAFE_BRANCH_PATTERN} branches",
+                "target": "branch",
+                "enforcement": "active",
+                "conditions": {
+                    "ref_name": {
+                        "include": [f"refs/heads/{Config.SAFE_BRANCH_PATTERN}"],
+                        "exclude": []
+                    }
+                },
+                "rules": [
+                    {
+                        "type": "required_pull_request_reviews",
+                        "parameters": safe_rules.get('required_pull_request_reviews', {})
+                    },
+                    {
+                        "type": "required_conversation_resolution",
+                        "parameters": {}
+                    },
+                    {
+                        "type": "linear_history",
+                        "parameters": {}
+                    }
+                ]
+            }
+            
+            rules_response = requests.post(rules_url, headers=headers, json=rules_payload)
+            if rules_response.status_code == 201:
+                results["safe_pattern"] = {"success": True, "message": f"{Config.SAFE_BRANCH_PATTERN} pattern rule created"}
+                logger.info(f"Successfully created {Config.SAFE_BRANCH_PATTERN} pattern rule in {repo_name}")
+            else:
+                results["safe_pattern"] = {"success": False, "error": f"HTTP {rules_response.status_code}: {rules_response.text}"}
+                logger.error(f"Failed to create {Config.SAFE_BRANCH_PATTERN} pattern rule: {rules_response.status_code} - {rules_response.text}")
+            
+            return {
+                "success": True,
+                "results": results,
+                "message": "Branch protection setup completed"
+            }
             
         except Exception as e:
-            logger.error(f"Failed to create branch protection rule: {e}")
+            logger.error(f"Failed to create branch protection rules: {e}")
             return {
                 "success": False,
                 "error": str(e)

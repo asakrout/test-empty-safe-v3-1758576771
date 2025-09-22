@@ -1,3 +1,3 @@
-# test-repo-pattern
+# test-repo-wildcard
 
-Testing *safe* pattern with branch protection
+Testing *safe* wildcard pattern with Repository Rules API

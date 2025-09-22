@@ -59,7 +59,7 @@ def create(repo_name, description, private, local_path, files):
                 if protection["success"]:
                     click.echo(click.style("🛡️ Branch Protection Setup:", fg="blue"))
                     click.echo("  ✅ main branch: protected")
-                    click.echo(f"  ✅ {Config.SAFE_BRANCH_PATTERN} pattern rule: created (automatically protects any branch matching this pattern)")
+                    click.echo(f"  ✅ {Config.SAFE_BRANCH_PATTERN} pattern: configured")
                 else:
                     click.echo(click.style("⚠️ Branch protection failed:", fg="yellow"))
                     click.echo(f"  {protection['error']}")
@@ -103,7 +103,7 @@ def from_template(repo_name, template_path, description, private):
                 if protection["success"]:
                     click.echo(click.style("🛡️ Branch Protection Setup:", fg="blue"))
                     click.echo("  ✅ main branch: protected")
-                    click.echo(f"  ✅ {Config.SAFE_BRANCH_PATTERN} pattern rule: created (automatically protects any branch matching this pattern)")
+                    click.echo(f"  ✅ {Config.SAFE_BRANCH_PATTERN} pattern: configured")
                 else:
                     click.echo(click.style("⚠️ Branch protection failed:", fg="yellow"))
                     click.echo(f"  {protection['error']}")
@@ -210,7 +210,7 @@ def create_branch(repo_name, branch_name):
             
             # Check if the branch matches the safe pattern
             if Config.get_safe_pattern_core() in branch_name.lower():
-                click.echo(click.style(f"🛡️ Branch '{branch_name}' matches '{Config.SAFE_BRANCH_PATTERN}' pattern - will be automatically protected by existing rule", fg="blue"))
+                click.echo(click.style(f"🛡️ Branch '{branch_name}' matches '{Config.SAFE_BRANCH_PATTERN}' pattern", fg="blue"))
             
         except Exception as e:
             click.echo(click.style(f"❌ Failed to create branch: {e}", fg="red"))
