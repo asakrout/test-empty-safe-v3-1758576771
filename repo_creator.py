@@ -129,8 +129,7 @@ class RepositoryCreator:
             )
             
             # Now create an empty commit that removes all files
-            # Get the current tree and create a new empty tree
-            current_tree = main_branch.commit.tree
+            # Create a new empty tree
             empty_tree = repo.create_git_tree([])
             
             # Create a commit that removes all files
