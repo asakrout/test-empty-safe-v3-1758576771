@@ -1,3 +1,3 @@
-# test-repo-config
+# test-repo-public
 
-Testing configurable branch pattern
+Testing public repo with branch protection

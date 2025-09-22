@@ -17,7 +17,7 @@ class Config:
     DEFAULT_DESCRIPTION = os.getenv('DEFAULT_DESCRIPTION', 'Created with GitHub Repo Creator')
     
     # Branch protection settings
-    SAFE_BRANCH_PATTERN = os.getenv('SAFE_BRANCH_PATTERN', '*safe*').lower()
+    SAFE_BRANCH_PATTERN = os.getenv('SAFE_BRANCH_PATTERN', 'safe').lower()
     
     # Validation
     @classmethod
