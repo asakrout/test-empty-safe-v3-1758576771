@@ -121,21 +121,28 @@ class RepositoryCreator:
                 }
             
             # Create an empty safe branch
-            # First, create an empty tree (no files)
-            empty_tree = repo.create_git_tree([])
-            
-            # Create an empty commit
-            empty_commit = repo.create_git_commit(
-                message="Initial empty commit for safe branch",
-                tree=empty_tree,
-                parents=[]
-            )
-            
-            # Create the branch reference pointing to the empty commit
+            # First create the branch from main
+            main_branch = repo.get_branch("main")
             repo.create_git_ref(
                 ref="refs/heads/safe",
-                sha=empty_commit.sha
+                sha=main_branch.commit.sha
             )
+            
+            # Now create an empty commit that removes all files
+            # Get the current tree and create a new empty tree
+            current_tree = main_branch.commit.tree
+            empty_tree = repo.create_git_tree([])
+            
+            # Create a commit that removes all files
+            empty_commit = repo.create_git_commit(
+                message="Empty safe branch - all files removed",
+                tree=empty_tree,
+                parents=[main_branch.commit]
+            )
+            
+            # Update the safe branch to point to the empty commit
+            safe_ref = repo.get_git_ref("heads/safe")
+            safe_ref.edit(empty_commit.sha)
             logger.info("Created empty safe branch")
             
             # Apply protection rules to safe branch (using safe-specific rules)
