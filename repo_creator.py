@@ -90,24 +90,64 @@ class RepositoryCreator:
             # Create branch protection rules for main branch
             result = self.github_client.create_branch_protection_rules(repo_name)
             
-            # Also protect the safe branch with same rules as main
+            # Create the safe branch first, then protect it
+            safe_branch_result = self._create_and_protect_safe_branch(repo_name)
+            
+            logger.info("Branch protection setup complete:")
+            logger.info("- main branch: protected")
+            if safe_branch_result["success"]:
+                logger.info("- safe branch: created and protected")
+            else:
+                logger.warning(f"- safe branch setup failed: {safe_branch_result.get('error', 'Unknown error')}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to apply branch protections: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _create_and_protect_safe_branch(self, repo_name: str) -> Dict[str, Any]:
+        """Create the safe branch and apply protection rules."""
+        try:
+            # Get the repository
+            repo = self.github_client.get_repository(repo_name)
+            if not repo:
+                return {
+                    "success": False,
+                    "error": f"Repository {repo_name} not found"
+                }
+            
+            # Create the safe branch from main
+            main_branch = repo.get_branch("main")
+            repo.create_git_ref(
+                ref="refs/heads/safe",
+                sha=main_branch.commit.sha
+            )
+            logger.info("Created safe branch from main")
+            
+            # Apply protection rules to safe branch
             safe_protection = self.github_client.create_branch_protection(
                 repo_name=repo_name,
                 branch="safe",
                 protection_rules=self.github_client.get_branch_protection_rules("main")
             )
             
-            logger.info("Branch protection setup complete:")
-            logger.info("- main branch: protected")
             if safe_protection["success"]:
-                logger.info("- safe branch: protected")
+                return {
+                    "success": True,
+                    "message": "Safe branch created and protected"
+                }
             else:
-                logger.warning(f"- safe branch protection failed: {safe_protection.get('error', 'Unknown error')}")
-            
-            return result
-            
+                return {
+                    "success": False,
+                    "error": f"Failed to protect safe branch: {safe_protection.get('error', 'Unknown error')}"
+                }
+                
         except Exception as e:
-            logger.error(f"Failed to apply branch protections: {e}")
+            logger.error(f"Failed to create and protect safe branch: {e}")
             return {
                 "success": False,
                 "error": str(e)
