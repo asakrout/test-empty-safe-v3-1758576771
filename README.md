@@ -1,3 +1,3 @@
-# test-auto-protected-repo
+# test-safe-branch-repo
 
-Testing automatic branch protection on creation
+Testing safe branch protection
