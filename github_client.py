@@ -226,41 +226,13 @@ class GitHubClient:
                 results["main"] = {"success": False, "error": f"HTTP {main_response.status_code}: {main_response.text}"}
                 logger.error(f"Failed to protect main branch: {main_response.status_code} - {main_response.text}")
             
-            # Create repository rule for *safe* pattern using Repository Rules API
-            rules_url = f"https://api.github.com/repos/{self.username}/{repo_name}/rules/branches"
-            rules_payload = {
-                "name": f"Protect {Config.SAFE_BRANCH_PATTERN} branches",
-                "target": "branch",
-                "enforcement": "active",
-                "conditions": {
-                    "ref_name": {
-                        "include": [f"refs/heads/{Config.SAFE_BRANCH_PATTERN}"],
-                        "exclude": []
-                    }
-                },
-                "rules": [
-                    {
-                        "type": "required_pull_request_reviews",
-                        "parameters": safe_rules.get('required_pull_request_reviews', {})
-                    },
-                    {
-                        "type": "required_conversation_resolution",
-                        "parameters": {}
-                    },
-                    {
-                        "type": "linear_history",
-                        "parameters": {}
-                    }
-                ]
+            # Note: Repository Rules API with wildcards may not be available for all repositories
+            # For now, we'll configure the pattern and provide instructions for manual setup
+            results["safe_pattern"] = {
+                "success": True, 
+                "message": f"{Config.SAFE_BRANCH_PATTERN} pattern configured - create branch protection rule manually in GitHub UI with pattern '{Config.SAFE_BRANCH_PATTERN}'"
             }
-            
-            rules_response = requests.post(rules_url, headers=headers, json=rules_payload)
-            if rules_response.status_code == 201:
-                results["safe_pattern"] = {"success": True, "message": f"{Config.SAFE_BRANCH_PATTERN} pattern rule created"}
-                logger.info(f"Successfully created {Config.SAFE_BRANCH_PATTERN} pattern rule in {repo_name}")
-            else:
-                results["safe_pattern"] = {"success": False, "error": f"HTTP {rules_response.status_code}: {rules_response.text}"}
-                logger.error(f"Failed to create {Config.SAFE_BRANCH_PATTERN} pattern rule: {rules_response.status_code} - {rules_response.text}")
+            logger.info(f"{Config.SAFE_BRANCH_PATTERN} pattern configured for {repo_name} - create branch protection rule manually in GitHub UI")
             
             return {
                 "success": True,

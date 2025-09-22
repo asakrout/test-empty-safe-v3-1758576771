@@ -1,3 +1,3 @@
-# test-repo-wildcard2
+# test-final-repo
 
-Testing *safe* wildcard pattern with Repository Rules API
+Final test repository with *safe* pattern configuration
