@@ -59,6 +59,8 @@ def create(repo_name, description, private, local_path, files):
             
     except Exception as e:
         click.echo(click.style(f"❌ Unexpected error: {e}", fg="red"))
+        import traceback
+        click.echo(f"Full error details: {traceback.format_exc()}")
         sys.exit(1)
 
 @cli.command()
@@ -90,6 +92,36 @@ def from_template(repo_name, template_path, description, private):
             
     except Exception as e:
         click.echo(click.style(f"❌ Unexpected error: {e}", fg="red"))
+        import traceback
+        click.echo(f"Full error details: {traceback.format_exc()}")
+        sys.exit(1)
+
+@cli.command()
+def test():
+    """Test GitHub connection and authentication."""
+    try:
+        click.echo("🔍 Testing GitHub connection...")
+        creator = RepositoryCreator()
+        
+        # Test GitHub API connection
+        user = creator.github_client.user
+        click.echo(f"✅ Connected as: {user.login}")
+        click.echo(f"📧 Email: {user.email or 'Not public'}")
+        click.echo(f"🏢 Company: {user.company or 'Not specified'}")
+        click.echo(f"📊 Public repos: {user.public_repos}")
+        
+        # Test repository listing
+        repos = list(user.get_repos()[:5])  # Get first 5 repos
+        click.echo(f"\n📁 Recent repositories:")
+        for repo in repos:
+            click.echo(f"  - {repo.name} ({'🔒' if repo.private else '🌐'})")
+        
+        click.echo("\n✅ GitHub connection test successful!")
+        
+    except Exception as e:
+        click.echo(click.style(f"❌ GitHub connection failed: {e}", fg="red"))
+        import traceback
+        click.echo(f"Full error details: {traceback.format_exc()}")
         sys.exit(1)
 
 @cli.command()

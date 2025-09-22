@@ -28,14 +28,20 @@ class GitHubClient:
     ) -> Dict[str, Any]:
         """Create a new GitHub repository."""
         try:
-            repo = self.user.create_repo(
-                name=name,
-                description=description,
-                private=private,
-                auto_init=auto_init,
-                gitignore_template=gitignore_template,
-                license_template=license_template
-            )
+            # Prepare parameters, only include non-None values
+            repo_params = {
+                'name': name,
+                'description': description,
+                'private': private,
+                'auto_init': auto_init
+            }
+            
+            if gitignore_template is not None:
+                repo_params['gitignore_template'] = gitignore_template
+            if license_template is not None:
+                repo_params['license_template'] = license_template
+                
+            repo = self.user.create_repo(**repo_params)
             
             logger.info(f"Successfully created repository: {repo.full_name}")
             return {
