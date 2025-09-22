@@ -183,7 +183,7 @@ class GitHubClient:
         pattern: str,
         protection_rules: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Create a branch protection rule with a pattern using GitHub's rules API."""
+        """Create a branch protection rule with a pattern using GitHub's branch protection API."""
         try:
             repo = self.get_repository(repo_name)
             if not repo:
@@ -192,50 +192,31 @@ class GitHubClient:
                     "error": f"Repository {repo_name} not found"
                 }
             
-            # Use the GitHub Rules API for pattern-based protection
+            # Use the regular branch protection API with the pattern as the branch name
             import requests
             
-            url = f"https://api.github.com/repos/{self.username}/{repo_name}/rules/branches"
+            url = f"https://api.github.com/repos/{self.username}/{repo_name}/branches/{pattern}/protection"
             headers = {
                 "Accept": "application/vnd.github+json",
                 "Authorization": f"token {self.token}",
                 "X-GitHub-Api-Version": "2022-11-28"
             }
             
-            # Prepare the rule payload
+            # Prepare the protection rules payload
             payload = {
-                "name": f"Protect {pattern} branches",
-                "target": "branch",
-                "enforcement": "active",
-                "conditions": {
-                    "ref_name": {
-                        "include": [pattern],
-                        "exclude": []
-                    }
-                },
-                "rules": [
-                    {
-                        "type": "required_pull_request_reviews",
-                        "parameters": protection_rules.get('required_pull_request_reviews', {})
-                    },
-                    {
-                        "type": "required_status_checks",
-                        "parameters": protection_rules.get('required_status_checks', {})
-                    },
-                    {
-                        "type": "required_conversation_resolution",
-                        "parameters": {}
-                    },
-                    {
-                        "type": "linear_history",
-                        "parameters": {}
-                    }
-                ]
+                "required_status_checks": None,
+                "enforce_admins": protection_rules.get('enforce_admins', False),
+                "required_pull_request_reviews": protection_rules.get('required_pull_request_reviews'),
+                "restrictions": protection_rules.get('restrictions'),
+                "allow_force_pushes": protection_rules.get('allow_force_pushes', False),
+                "allow_deletions": protection_rules.get('allow_deletions', False),
+                "required_conversation_resolution": True,
+                "require_linear_history": True
             }
             
-            response = requests.post(url, headers=headers, json=payload)
+            response = requests.put(url, headers=headers, json=payload)
             
-            if response.status_code == 201:
+            if response.status_code == 200:
                 logger.info(f"Successfully created branch protection rule for pattern {pattern} in {repo_name}")
                 return {
                     "success": True,

@@ -1,3 +1,3 @@
-# test-repo-rules
+# test-repo-pattern
 
-Testing branch protection rules with *safe* pattern
+Testing *safe* pattern with branch protection
