@@ -14,6 +14,7 @@ class GitHubClient:
     def __init__(self, token: str, username: Optional[str] = None):
         """Initialize GitHub client with authentication token."""
         self.github = Github(token)
+        self.token = token  # Store token for direct API calls
         self.username = username or self.github.get_user().login
         self.user = self.github.get_user()
         
@@ -123,7 +124,7 @@ class GitHubClient:
         branch: str, 
         protection_rules: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Create or update branch protection rules."""
+        """Create or update branch protection rules using REST API."""
         try:
             repo = self.get_repository(repo_name)
             if not repo:
@@ -132,28 +133,44 @@ class GitHubClient:
                     "error": f"Repository {repo_name} not found"
                 }
             
-            # Get the branch
-            branch_ref = repo.get_branch(branch)
+            # Use the REST API directly for branch protection
+            import requests
             
-            # Apply branch protection rules
-            branch_ref.edit_protection(
-                required_status_checks=protection_rules.get('required_status_checks'),
-                enforce_admins=protection_rules.get('enforce_admins', False),
-                required_pull_request_reviews=protection_rules.get('required_pull_request_reviews'),
-                restrictions=protection_rules.get('restrictions'),
-                allow_force_pushes=protection_rules.get('allow_force_pushes', False),
-                allow_deletions=protection_rules.get('allow_deletions', False),
-                required_conversation_resolution=protection_rules.get('required_conversation_resolution', False),
-                require_linear_history=protection_rules.get('require_linear_history', False)
-            )
-            
-            logger.info(f"Successfully applied branch protection to {repo_name}:{branch}")
-            return {
-                "success": True,
-                "message": f"Branch protection applied to {branch}"
+            url = f"https://api.github.com/repos/{self.username}/{repo_name}/branches/{branch}/protection"
+            headers = {
+                "Accept": "application/vnd.github+json",
+                "Authorization": f"token {self.token}",
+                "X-GitHub-Api-Version": "2022-11-28"
             }
             
-        except GithubException as e:
+            # Prepare the protection rules payload
+            payload = {
+                "required_status_checks": None,
+                "enforce_admins": protection_rules.get('enforce_admins', False),
+                "required_pull_request_reviews": protection_rules.get('required_pull_request_reviews'),
+                "restrictions": protection_rules.get('restrictions'),
+                "allow_force_pushes": protection_rules.get('allow_force_pushes', False),
+                "allow_deletions": protection_rules.get('allow_deletions', False),
+                "required_conversation_resolution": True,
+                "require_linear_history": True
+            }
+            
+            response = requests.put(url, headers=headers, json=payload)
+            
+            if response.status_code == 200:
+                logger.info(f"Successfully applied branch protection to {repo_name}:{branch}")
+                return {
+                    "success": True,
+                    "message": f"Branch protection applied to {branch}"
+                }
+            else:
+                logger.error(f"Failed to create branch protection: {response.status_code} - {response.text}")
+                return {
+                    "success": False,
+                    "error": f"HTTP {response.status_code}: {response.text}"
+                }
+            
+        except Exception as e:
             logger.error(f"Failed to create branch protection: {e}")
             return {
                 "success": False,
@@ -165,36 +182,28 @@ class GitHubClient:
         
         if branch_type == "main":
             return {
-                "required_status_checks": None,  # No status checks required by default
                 "enforce_admins": False,
                 "required_pull_request_reviews": {
                     "required_approving_review_count": 1,
                     "dismiss_stale_reviews": True,
-                    "require_code_owner_reviews": True,
-                    "require_last_push_approval": True
+                    "require_code_owner_reviews": True
                 },
                 "restrictions": None,  # No user/team restrictions by default
                 "allow_force_pushes": False,
-                "allow_deletions": False,
-                "required_conversation_resolution": True,
-                "require_linear_history": True
+                "allow_deletions": False
             }
         elif branch_type == "safe":
             # Same rules as main for *safe* branches
             return {
-                "required_status_checks": None,
                 "enforce_admins": False,
                 "required_pull_request_reviews": {
                     "required_approving_review_count": 1,
                     "dismiss_stale_reviews": True,
-                    "require_code_owner_reviews": True,
-                    "require_last_push_approval": True
+                    "require_code_owner_reviews": True
                 },
                 "restrictions": None,
                 "allow_force_pushes": False,
-                "allow_deletions": False,
-                "required_conversation_resolution": True,
-                "require_linear_history": True
+                "allow_deletions": False
             }
         else:
             return {}
