@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any
 from github import Github, GithubException
 from git import Repo, GitCommandError
 import logging
+from config import Config
 
 logger = logging.getLogger(__name__)
 
