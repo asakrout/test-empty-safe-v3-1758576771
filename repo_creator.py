@@ -98,14 +98,23 @@ class RepositoryCreator:
             )
             protection_results["main"] = main_result
             
+            # Create branch protection rule for *safe* pattern
+            safe_rules = self.github_client.get_branch_protection_rules("safe")
+            safe_rule_result = self.github_client.create_branch_protection_rule(
+                repo_name=repo_name,
+                pattern=Config.SAFE_BRANCH_PATTERN,
+                protection_rules=safe_rules
+            )
+            protection_results["safe_pattern_rule"] = safe_rule_result
+            
             logger.info("Branch protection setup complete:")
             logger.info("- main branch: protected")
-            logger.info(f"- *{Config.SAFE_BRANCH_PATTERN}* pattern: configured (any branch with '{Config.SAFE_BRANCH_PATTERN}' in name will be protected)")
+            logger.info(f"- {Config.SAFE_BRANCH_PATTERN} pattern rule: created (automatically protects any branch matching this pattern)")
             
             return {
                 "success": True,
                 "results": protection_results,
-                "message": f"Branch protections applied: main branch protected, *{Config.SAFE_BRANCH_PATTERN}* pattern configured"
+                "message": f"Branch protections applied: main branch protected, {Config.SAFE_BRANCH_PATTERN} pattern rule created"
             }
             
         except Exception as e:

@@ -177,6 +177,84 @@ class GitHubClient:
                 "error": str(e)
             }
     
+    def create_branch_protection_rule(
+        self, 
+        repo_name: str, 
+        pattern: str,
+        protection_rules: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Create a branch protection rule with a pattern using GitHub's rules API."""
+        try:
+            repo = self.get_repository(repo_name)
+            if not repo:
+                return {
+                    "success": False,
+                    "error": f"Repository {repo_name} not found"
+                }
+            
+            # Use the GitHub Rules API for pattern-based protection
+            import requests
+            
+            url = f"https://api.github.com/repos/{self.username}/{repo_name}/rules/branches"
+            headers = {
+                "Accept": "application/vnd.github+json",
+                "Authorization": f"token {self.token}",
+                "X-GitHub-Api-Version": "2022-11-28"
+            }
+            
+            # Prepare the rule payload
+            payload = {
+                "name": f"Protect {pattern} branches",
+                "target": "branch",
+                "enforcement": "active",
+                "conditions": {
+                    "ref_name": {
+                        "include": [pattern],
+                        "exclude": []
+                    }
+                },
+                "rules": [
+                    {
+                        "type": "required_pull_request_reviews",
+                        "parameters": protection_rules.get('required_pull_request_reviews', {})
+                    },
+                    {
+                        "type": "required_status_checks",
+                        "parameters": protection_rules.get('required_status_checks', {})
+                    },
+                    {
+                        "type": "required_conversation_resolution",
+                        "parameters": {}
+                    },
+                    {
+                        "type": "linear_history",
+                        "parameters": {}
+                    }
+                ]
+            }
+            
+            response = requests.post(url, headers=headers, json=payload)
+            
+            if response.status_code == 201:
+                logger.info(f"Successfully created branch protection rule for pattern {pattern} in {repo_name}")
+                return {
+                    "success": True,
+                    "message": f"Branch protection rule created for pattern {pattern}"
+                }
+            else:
+                logger.error(f"Failed to create branch protection rule: {response.status_code} - {response.text}")
+                return {
+                    "success": False,
+                    "error": f"HTTP {response.status_code}: {response.text}"
+                }
+            
+        except Exception as e:
+            logger.error(f"Failed to create branch protection rule: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
     def get_branch_protection_rules(self, branch_type: str = "main") -> Dict[str, Any]:
         """Get branch protection rules based on branch type."""
         

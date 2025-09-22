@@ -17,7 +17,14 @@ class Config:
     DEFAULT_DESCRIPTION = os.getenv('DEFAULT_DESCRIPTION', 'Created with GitHub Repo Creator')
     
     # Branch protection settings
-    SAFE_BRANCH_PATTERN = os.getenv('SAFE_BRANCH_PATTERN', 'safe').lower()
+    SAFE_BRANCH_PATTERN = os.getenv('SAFE_BRANCH_PATTERN', '*safe*')
+    
+    @classmethod
+    def get_safe_pattern_core(cls) -> str:
+        """Extract the core pattern from the wildcard pattern for matching."""
+        pattern = cls.SAFE_BRANCH_PATTERN
+        # Remove asterisks from the pattern for matching
+        return pattern.strip('*').lower()
     
     # Validation
     @classmethod

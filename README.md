@@ -1,3 +1,3 @@
-# test-repo-public
+# test-repo-rules
 
-Testing public repo with branch protection
+Testing branch protection rules with *safe* pattern
