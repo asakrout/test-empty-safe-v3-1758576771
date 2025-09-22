@@ -1,3 +1,3 @@
-# test-branch-protection
+# test-repo-config
 
-Testing branch protection for main and safe branches
+Testing configurable branch pattern

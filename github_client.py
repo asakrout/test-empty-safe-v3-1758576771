@@ -207,3 +207,37 @@ class GitHubClient:
             }
         else:
             return {}
+    
+    def setup_branch_protection_webhook(self, repo_name: str) -> Dict[str, Any]:
+        """Set up a webhook to automatically protect new safe branches."""
+        try:
+            repo = self.get_repository(repo_name)
+            if not repo:
+                return {
+                    "success": False,
+                    "error": f"Repository {repo_name} not found"
+                }
+            
+            # Create a webhook for branch creation events
+            webhook_url = "https://your-webhook-endpoint.com/github-webhook"  # This would need to be configured
+            webhook_config = {
+                "url": webhook_url,
+                "content_type": "json",
+                "secret": "your-webhook-secret",  # This would need to be configured
+                "events": ["create"]  # Trigger on branch creation
+            }
+            
+            # Note: This is a placeholder - actual webhook setup would require a webhook endpoint
+            # For now, we'll just return success and mention that manual protection is needed
+            logger.info(f"Webhook setup would be configured for {repo_name}")
+            return {
+                "success": True,
+                "message": "Webhook setup placeholder - manual protection required for new safe branches"
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to setup webhook: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }

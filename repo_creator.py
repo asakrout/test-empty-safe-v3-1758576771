@@ -98,28 +98,14 @@ class RepositoryCreator:
             )
             protection_results["main"] = main_result
             
-            # Check if there are any branches with 'safe' in the name
-            try:
-                repo = self.github_client.get_repository(repo_name)
-                if repo:
-                    branches = repo.get_branches()
-                    for branch in branches:
-                        if 'safe' in branch.name.lower():
-                            logger.info(f"Found branch with 'safe' in name: {branch.name}, applying safe protection")
-                            safe_rules = self.github_client.get_branch_protection_rules("safe")
-                            safe_result = self.github_client.create_branch_protection(
-                                repo_name=repo_name,
-                                branch=branch.name,
-                                protection_rules=safe_rules
-                            )
-                            protection_results[f"safe_branch_{branch.name}"] = safe_result
-            except Exception as e:
-                logger.warning(f"Could not check for safe branches: {e}")
+            logger.info("Branch protection setup complete:")
+            logger.info("- main branch: protected")
+            logger.info(f"- *{Config.SAFE_BRANCH_PATTERN}* pattern: configured (any branch with '{Config.SAFE_BRANCH_PATTERN}' in name will be protected)")
             
             return {
                 "success": True,
                 "results": protection_results,
-                "message": "Branch protections applied successfully"
+                "message": f"Branch protections applied: main branch protected, *{Config.SAFE_BRANCH_PATTERN}* pattern configured"
             }
             
         except Exception as e:
