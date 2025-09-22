@@ -1,3 +1,3 @@
-# test-final-repo
+# test-safe-branch
 
-Final test repository with *safe* pattern configuration
+Testing safe branch protection with same rules as main

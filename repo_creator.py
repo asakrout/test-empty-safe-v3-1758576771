@@ -92,6 +92,7 @@ class RepositoryCreator:
             
             logger.info("Branch protection setup complete:")
             logger.info("- main branch: protected")
+            logger.info("- safe branch: protected")
             logger.info(f"- {Config.SAFE_BRANCH_PATTERN} pattern: configured")
             
             return result

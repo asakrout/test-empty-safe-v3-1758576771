@@ -59,6 +59,7 @@ def create(repo_name, description, private, local_path, files):
                 if protection["success"]:
                     click.echo(click.style("🛡️ Branch Protection Setup:", fg="blue"))
                     click.echo("  ✅ main branch: protected")
+                    click.echo("  ✅ safe branch: protected")
                     click.echo(f"  ✅ {Config.SAFE_BRANCH_PATTERN} pattern: configured")
                 else:
                     click.echo(click.style("⚠️ Branch protection failed:", fg="yellow"))
@@ -103,6 +104,7 @@ def from_template(repo_name, template_path, description, private):
                 if protection["success"]:
                     click.echo(click.style("🛡️ Branch Protection Setup:", fg="blue"))
                     click.echo("  ✅ main branch: protected")
+                    click.echo("  ✅ safe branch: protected")
                     click.echo(f"  ✅ {Config.SAFE_BRANCH_PATTERN} pattern: configured")
                 else:
                     click.echo(click.style("⚠️ Branch protection failed:", fg="yellow"))
