@@ -1,3 +1,3 @@
-# test-safe-branch-repo
+# my-safe-repository
 
-Testing safe branch protection
+Testing safe repository branch protection
