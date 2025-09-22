@@ -116,3 +116,85 @@ class GitHubClient:
             return self.user.get_repo(repo_name)
         except GithubException:
             return None
+    
+    def create_branch_protection(
+        self, 
+        repo_name: str, 
+        branch: str, 
+        protection_rules: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Create or update branch protection rules."""
+        try:
+            repo = self.get_repository(repo_name)
+            if not repo:
+                return {
+                    "success": False,
+                    "error": f"Repository {repo_name} not found"
+                }
+            
+            # Get the branch
+            branch_ref = repo.get_branch(branch)
+            
+            # Apply branch protection rules
+            branch_ref.edit_protection(
+                required_status_checks=protection_rules.get('required_status_checks'),
+                enforce_admins=protection_rules.get('enforce_admins', False),
+                required_pull_request_reviews=protection_rules.get('required_pull_request_reviews'),
+                restrictions=protection_rules.get('restrictions'),
+                allow_force_pushes=protection_rules.get('allow_force_pushes', False),
+                allow_deletions=protection_rules.get('allow_deletions', False),
+                required_conversation_resolution=protection_rules.get('required_conversation_resolution', False),
+                require_linear_history=protection_rules.get('require_linear_history', False)
+            )
+            
+            logger.info(f"Successfully applied branch protection to {repo_name}:{branch}")
+            return {
+                "success": True,
+                "message": f"Branch protection applied to {branch}"
+            }
+            
+        except GithubException as e:
+            logger.error(f"Failed to create branch protection: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def get_branch_protection_rules(self, branch_type: str = "main") -> Dict[str, Any]:
+        """Get branch protection rules based on branch type."""
+        
+        if branch_type == "main":
+            return {
+                "required_status_checks": None,  # No status checks required by default
+                "enforce_admins": False,
+                "required_pull_request_reviews": {
+                    "required_approving_review_count": 1,
+                    "dismiss_stale_reviews": True,
+                    "require_code_owner_reviews": True,
+                    "require_last_push_approval": True
+                },
+                "restrictions": None,  # No user/team restrictions by default
+                "allow_force_pushes": False,
+                "allow_deletions": False,
+                "required_conversation_resolution": True,
+                "require_linear_history": True
+            }
+        elif branch_type == "safe":
+            # Same rules as main for *safe* branches
+            return {
+                "required_status_checks": None,
+                "enforce_admins": False,
+                "required_pull_request_reviews": {
+                    "required_approving_review_count": 1,
+                    "dismiss_stale_reviews": True,
+                    "require_code_owner_reviews": True,
+                    "require_last_push_approval": True
+                },
+                "restrictions": None,
+                "allow_force_pushes": False,
+                "allow_deletions": False,
+                "required_conversation_resolution": True,
+                "require_linear_history": True
+            }
+        else:
+            return {}

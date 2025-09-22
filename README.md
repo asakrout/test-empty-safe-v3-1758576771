@@ -1,3 +1,3 @@
-# my-test-repo-3
+# test-protected-repo
 
-Testing the GitHub Repo Creator with fixed error handling
+Testing branch protection functionality

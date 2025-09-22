@@ -58,13 +58,17 @@ class RepositoryCreator:
         if not push_result["success"]:
             return push_result
         
+        # Apply branch protection rules
+        protection_result = self._apply_branch_protections(repo_name)
+        
         return {
             "success": True,
             "repository": repo_result["repo"],
             "clone_url": repo_result["clone_url"],
             "html_url": repo_result["html_url"],
             "local_path": local_path,
-            "message": f"Repository '{repo_name}' created and pushed successfully!"
+            "branch_protection": protection_result,
+            "message": f"Repository '{repo_name}' created, pushed, and protected successfully!"
         }
     
     def _create_local_files(self, local_path: str, files: Dict[str, str]) -> None:
@@ -79,6 +83,51 @@ class RepositoryCreator:
                 f.write(content)
             
             logger.info(f"Created file: {file_path}")
+    
+    def _apply_branch_protections(self, repo_name: str) -> Dict[str, Any]:
+        """Apply branch protection rules to the repository."""
+        protection_results = {}
+        
+        try:
+            # Apply protection to main branch
+            main_rules = self.github_client.get_branch_protection_rules("main")
+            main_result = self.github_client.create_branch_protection(
+                repo_name=repo_name,
+                branch="main",
+                protection_rules=main_rules
+            )
+            protection_results["main"] = main_result
+            
+            # Check if there are any branches with 'safe' in the name
+            try:
+                repo = self.github_client.get_repository(repo_name)
+                if repo:
+                    branches = repo.get_branches()
+                    for branch in branches:
+                        if 'safe' in branch.name.lower():
+                            safe_rules = self.github_client.get_branch_protection_rules("safe")
+                            safe_result = self.github_client.create_branch_protection(
+                                repo_name=repo_name,
+                                branch=branch.name,
+                                protection_rules=safe_rules
+                            )
+                            protection_results[f"safe_branch_{branch.name}"] = safe_result
+            except Exception as e:
+                logger.warning(f"Could not check for safe branches: {e}")
+            
+            return {
+                "success": True,
+                "results": protection_results,
+                "message": "Branch protections applied successfully"
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to apply branch protections: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "results": protection_results
+            }
     
     def create_from_template(
         self,
@@ -114,11 +163,15 @@ class RepositoryCreator:
         if not push_result["success"]:
             return push_result
         
+        # Apply branch protection rules
+        protection_result = self._apply_branch_protections(repo_name)
+        
         return {
             "success": True,
             "repository": repo_result["repo"],
             "clone_url": repo_result["clone_url"],
             "html_url": repo_result["html_url"],
             "template_path": template_path,
-            "message": f"Repository '{repo_name}' created from template and pushed successfully!"
+            "branch_protection": protection_result,
+            "message": f"Repository '{repo_name}' created from template, pushed, and protected successfully!"
         }

@@ -52,6 +52,20 @@ def create(repo_name, description, private, local_path, files):
             click.echo(f"Repository: {result['html_url']}")
             click.echo(f"Clone URL: {result['clone_url']}")
             click.echo(f"Local path: {result['local_path']}")
+            
+            # Display branch protection information
+            if "branch_protection" in result:
+                protection = result["branch_protection"]
+                if protection["success"]:
+                    click.echo(click.style("🛡️ Branch Protection Applied:", fg="blue"))
+                    for branch, protection_result in protection["results"].items():
+                        if protection_result["success"]:
+                            click.echo(f"  ✅ {branch}: {protection_result['message']}")
+                        else:
+                            click.echo(f"  ❌ {branch}: {protection_result['error']}")
+                else:
+                    click.echo(click.style("⚠️ Branch protection failed:", fg="yellow"))
+                    click.echo(f"  {protection['error']}")
         else:
             click.echo(click.style("❌ Error:", fg="red"))
             click.echo(result["error"])
@@ -85,6 +99,20 @@ def from_template(repo_name, template_path, description, private):
             click.echo(f"Repository: {result['html_url']}")
             click.echo(f"Clone URL: {result['clone_url']}")
             click.echo(f"Template path: {result['template_path']}")
+            
+            # Display branch protection information
+            if "branch_protection" in result:
+                protection = result["branch_protection"]
+                if protection["success"]:
+                    click.echo(click.style("🛡️ Branch Protection Applied:", fg="blue"))
+                    for branch, protection_result in protection["results"].items():
+                        if protection_result["success"]:
+                            click.echo(f"  ✅ {branch}: {protection_result['message']}")
+                        else:
+                            click.echo(f"  ❌ {branch}: {protection_result['error']}")
+                else:
+                    click.echo(click.style("⚠️ Branch protection failed:", fg="yellow"))
+                    click.echo(f"  {protection['error']}")
         else:
             click.echo(click.style("❌ Error:", fg="red"))
             click.echo(result["error"])
@@ -120,6 +148,42 @@ def test():
         
     except Exception as e:
         click.echo(click.style(f"❌ GitHub connection failed: {e}", fg="red"))
+        import traceback
+        click.echo(f"Full error details: {traceback.format_exc()}")
+        sys.exit(1)
+
+@cli.command()
+@click.argument('repo_name')
+@click.option('--branch', '-b', default='main', help='Branch to protect (default: main)')
+@click.option('--type', '-t', type=click.Choice(['main', 'safe']), default='main', help='Protection type (main or safe)')
+def protect(repo_name, branch, type):
+    """Apply branch protection rules to an existing repository."""
+    try:
+        creator = RepositoryCreator()
+        
+        # Get protection rules based on type
+        rules = creator.github_client.get_branch_protection_rules(type)
+        
+        # Apply protection
+        result = creator.github_client.create_branch_protection(
+            repo_name=repo_name,
+            branch=branch,
+            protection_rules=rules
+        )
+        
+        if result["success"]:
+            click.echo(click.style("✅ Branch protection applied successfully!", fg="green"))
+            click.echo(f"Repository: {repo_name}")
+            click.echo(f"Branch: {branch}")
+            click.echo(f"Type: {type}")
+            click.echo(f"Message: {result['message']}")
+        else:
+            click.echo(click.style("❌ Failed to apply branch protection:", fg="red"))
+            click.echo(result["error"])
+            sys.exit(1)
+            
+    except Exception as e:
+        click.echo(click.style(f"❌ Unexpected error: {e}", fg="red"))
         import traceback
         click.echo(f"Full error details: {traceback.format_exc()}")
         sys.exit(1)
