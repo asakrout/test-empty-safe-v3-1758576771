@@ -59,7 +59,7 @@ def create(repo_name, description, private, local_path, files):
                 if protection["success"]:
                     click.echo(click.style("🛡️ Branch Protection Setup:", fg="blue"))
                     click.echo("  ✅ main branch: protected")
-                    click.echo("  ✅ safe branch: protected")
+                    click.echo("  ✅ safe branch: protected (stricter rules)")
                 else:
                     click.echo(click.style("⚠️ Branch protection failed:", fg="yellow"))
                     click.echo(f"  {protection['error']}")
@@ -103,7 +103,7 @@ def from_template(repo_name, template_path, description, private):
                 if protection["success"]:
                     click.echo(click.style("🛡️ Branch Protection Setup:", fg="blue"))
                     click.echo("  ✅ main branch: protected")
-                    click.echo("  ✅ safe branch: protected")
+                    click.echo("  ✅ safe branch: protected (stricter rules)")
                 else:
                     click.echo(click.style("⚠️ Branch protection failed:", fg="yellow"))
                     click.echo(f"  {protection['error']}")
@@ -222,12 +222,12 @@ def create_branch(repo_name, branch_name):
 @cli.command()
 @click.argument('repo_name')
 def protect_safe(repo_name):
-    """Apply branch protection rules to the 'safe' branch with same protections as main."""
+    """Apply branch protection rules to the 'safe' branch with safe-specific protections."""
     try:
         creator = RepositoryCreator()
         
-        # Get protection rules for main branch
-        rules = creator.github_client.get_branch_protection_rules("main")
+        # Get protection rules for safe branch (stricter than main)
+        rules = creator.github_client.get_branch_protection_rules("safe")
         
         # Apply protection to safe branch
         result = creator.github_client.create_branch_protection(
@@ -240,7 +240,7 @@ def protect_safe(repo_name):
             click.echo(click.style("✅ Safe branch protection applied successfully!", fg="green"))
             click.echo(f"Repository: {repo_name}")
             click.echo(f"Branch: safe")
-            click.echo(f"Protection: Same as main branch")
+            click.echo(f"Protection: Safe-specific rules (stricter than main)")
             click.echo(f"Message: {result['message']}")
         else:
             click.echo(click.style("❌ Failed to apply safe branch protection:", fg="red"))

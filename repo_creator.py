@@ -110,7 +110,7 @@ class RepositoryCreator:
             }
     
     def _create_and_protect_safe_branch(self, repo_name: str) -> Dict[str, Any]:
-        """Create the safe branch and apply protection rules."""
+        """Create an empty safe branch and apply protection rules."""
         try:
             # Get the repository
             repo = self.github_client.get_repository(repo_name)
@@ -120,19 +120,29 @@ class RepositoryCreator:
                     "error": f"Repository {repo_name} not found"
                 }
             
-            # Create the safe branch from main
-            main_branch = repo.get_branch("main")
+            # Create an empty safe branch
+            # First, create an empty tree (no files)
+            empty_tree = repo.create_git_tree([])
+            
+            # Create an empty commit
+            empty_commit = repo.create_git_commit(
+                message="Initial empty commit for safe branch",
+                tree=empty_tree,
+                parents=[]
+            )
+            
+            # Create the branch reference pointing to the empty commit
             repo.create_git_ref(
                 ref="refs/heads/safe",
-                sha=main_branch.commit.sha
+                sha=empty_commit.sha
             )
-            logger.info("Created safe branch from main")
+            logger.info("Created empty safe branch")
             
-            # Apply protection rules to safe branch
+            # Apply protection rules to safe branch (using safe-specific rules)
             safe_protection = self.github_client.create_branch_protection(
                 repo_name=repo_name,
                 branch="safe",
-                protection_rules=self.github_client.get_branch_protection_rules("main")
+                protection_rules=self.github_client.get_branch_protection_rules("safe")
             )
             
             if safe_protection["success"]:

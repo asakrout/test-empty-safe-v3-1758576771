@@ -264,6 +264,18 @@ class GitHubClient:
                 "allow_force_pushes": False,
                 "allow_deletions": False
             }
+        elif branch_type == "safe":
+            return {
+                "enforce_admins": True,  # Stricter rules for safe branch
+                "required_pull_request_reviews": {
+                    "required_approving_review_count": 2,  # More reviews required
+                    "dismiss_stale_reviews": True,
+                    "require_code_owner_reviews": True
+                },
+                "restrictions": None,  # No user/team restrictions by default
+                "allow_force_pushes": False,
+                "allow_deletions": False
+            }
         else:
             return {}
     
