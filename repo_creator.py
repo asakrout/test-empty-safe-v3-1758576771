@@ -87,13 +87,22 @@ class RepositoryCreator:
     def _apply_branch_protections(self, repo_name: str) -> Dict[str, Any]:
         """Apply branch protection rules to the repository."""
         try:
-            # Create branch protection rules for main and *safe* pattern
+            # Create branch protection rules for main branch
             result = self.github_client.create_branch_protection_rules(repo_name)
+            
+            # Also protect the safe branch with same rules as main
+            safe_protection = self.github_client.create_branch_protection(
+                repo_name=repo_name,
+                branch="safe",
+                protection_rules=self.github_client.get_branch_protection_rules("main")
+            )
             
             logger.info("Branch protection setup complete:")
             logger.info("- main branch: protected")
-            logger.info("- safe branch: rule configured")
-            logger.info(f"- {Config.SAFE_BRANCH_PATTERN} pattern: configured")
+            if safe_protection["success"]:
+                logger.info("- safe branch: protected")
+            else:
+                logger.warning(f"- safe branch protection failed: {safe_protection.get('error', 'Unknown error')}")
             
             return result
             

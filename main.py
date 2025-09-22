@@ -59,8 +59,7 @@ def create(repo_name, description, private, local_path, files):
                 if protection["success"]:
                     click.echo(click.style("🛡️ Branch Protection Setup:", fg="blue"))
                     click.echo("  ✅ main branch: protected")
-                    click.echo("  ✅ safe branch: rule configured")
-                    click.echo(f"  ✅ {Config.SAFE_BRANCH_PATTERN} pattern: configured")
+                    click.echo("  ✅ safe branch: protected")
                 else:
                     click.echo(click.style("⚠️ Branch protection failed:", fg="yellow"))
                     click.echo(f"  {protection['error']}")
@@ -104,8 +103,7 @@ def from_template(repo_name, template_path, description, private):
                 if protection["success"]:
                     click.echo(click.style("🛡️ Branch Protection Setup:", fg="blue"))
                     click.echo("  ✅ main branch: protected")
-                    click.echo("  ✅ safe branch: rule configured")
-                    click.echo(f"  ✅ {Config.SAFE_BRANCH_PATTERN} pattern: configured")
+                    click.echo("  ✅ safe branch: protected")
                 else:
                     click.echo(click.style("⚠️ Branch protection failed:", fg="yellow"))
                     click.echo(f"  {protection['error']}")
@@ -151,7 +149,7 @@ def test():
 @cli.command()
 @click.argument('repo_name')
 @click.option('--branch', '-b', default='main', help='Branch to protect (default: main)')
-@click.option('--type', '-t', type=click.Choice(['main', 'safe']), default='main', help='Protection type (main or safe)')
+@click.option('--type', '-t', type=click.Choice(['main']), default='main', help='Protection type (main)')
 def protect(repo_name, branch, type):
     """Apply branch protection rules to an existing repository."""
     try:
@@ -210,9 +208,6 @@ def create_branch(repo_name, branch_name):
             click.echo(f"Repository: {repo_name}")
             click.echo(f"Branch: {branch_name}")
             
-            # Check if the branch matches the safe pattern
-            if Config.get_safe_pattern_core() in branch_name.lower():
-                click.echo(click.style(f"🛡️ Branch '{branch_name}' matches '{Config.SAFE_BRANCH_PATTERN}' pattern", fg="blue"))
             
         except Exception as e:
             click.echo(click.style(f"❌ Failed to create branch: {e}", fg="red"))
@@ -226,51 +221,38 @@ def create_branch(repo_name, branch_name):
 
 @cli.command()
 @click.argument('repo_name')
-def protect_safe_branches(repo_name):
-    """Apply safe branch protection to all existing branches matching the configured pattern."""
+def protect_safe(repo_name):
+    """Apply branch protection rules to the 'safe' branch with same protections as main."""
     try:
         creator = RepositoryCreator()
         
-        # Get the repository
-        repo = creator.github_client.get_repository(repo_name)
-        if not repo:
-            click.echo(click.style(f"❌ Repository {repo_name} not found", fg="red"))
+        # Get protection rules for main branch
+        rules = creator.github_client.get_branch_protection_rules("main")
+        
+        # Apply protection to safe branch
+        result = creator.github_client.create_branch_protection(
+            repo_name=repo_name,
+            branch="safe",
+            protection_rules=rules
+        )
+        
+        if result["success"]:
+            click.echo(click.style("✅ Safe branch protection applied successfully!", fg="green"))
+            click.echo(f"Repository: {repo_name}")
+            click.echo(f"Branch: safe")
+            click.echo(f"Protection: Same as main branch")
+            click.echo(f"Message: {result['message']}")
+        else:
+            click.echo(click.style("❌ Failed to apply safe branch protection:", fg="red"))
+            click.echo(result["error"])
             sys.exit(1)
-        
-        # Get all branches matching the safe pattern
-        branches = repo.get_branches()
-        safe_branches = [branch for branch in branches if Config.get_safe_pattern_core() in branch.name.lower()]
-        
-        if not safe_branches:
-            click.echo(click.style(f"ℹ️ No branches matching '{Config.SAFE_BRANCH_PATTERN}' pattern found", fg="blue"))
-            return
-        
-        click.echo(click.style(f"🛡️ Found {len(safe_branches)} branches matching '{Config.SAFE_BRANCH_PATTERN}' pattern:", fg="blue"))
-        
-        safe_rules = creator.github_client.get_branch_protection_rules("safe")
-        protected_count = 0
-        
-        for branch in safe_branches:
-            click.echo(f"  - {branch.name}")
-            protection_result = creator.github_client.create_branch_protection(
-                repo_name=repo_name,
-                branch=branch.name,
-                protection_rules=safe_rules
-            )
-            
-            if protection_result["success"]:
-                click.echo(click.style(f"    ✅ Protected {branch.name}", fg="green"))
-                protected_count += 1
-            else:
-                click.echo(click.style(f"    ❌ Failed to protect {branch.name}: {protection_result['error']}", fg="red"))
-        
-        click.echo(click.style(f"\n✅ Successfully protected {protected_count}/{len(safe_branches)} branches matching '{Config.SAFE_BRANCH_PATTERN}' pattern", fg="green"))
             
     except Exception as e:
         click.echo(click.style(f"❌ Unexpected error: {e}", fg="red"))
         import traceback
         click.echo(f"Full error details: {traceback.format_exc()}")
         sys.exit(1)
+
 
 @cli.command()
 def setup():
