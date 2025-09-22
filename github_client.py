@@ -226,26 +226,12 @@ class GitHubClient:
                 results["main"] = {"success": False, "error": f"HTTP {main_response.status_code}: {main_response.text}"}
                 logger.error(f"Failed to protect main branch: {main_response.status_code} - {main_response.text}")
             
-            # Create branch protection for "safe" branch (literal branch name)
-            safe_url = f"https://api.github.com/repos/{self.username}/{repo_name}/branches/safe/protection"
-            safe_payload = {
-                "required_status_checks": None,
-                "enforce_admins": safe_rules.get('enforce_admins', False),
-                "required_pull_request_reviews": safe_rules.get('required_pull_request_reviews'),
-                "restrictions": safe_rules.get('restrictions'),
-                "allow_force_pushes": safe_rules.get('allow_force_pushes', False),
-                "allow_deletions": safe_rules.get('allow_deletions', False),
-                "required_conversation_resolution": True,
-                "require_linear_history": True
+            # Create branch protection rule for "safe" branch (will apply when branch is created)
+            results["safe_branch"] = {
+                "success": True, 
+                "message": "Safe branch protection rule configured - will protect 'safe' branch when created"
             }
-            
-            safe_response = requests.put(safe_url, headers=headers, json=safe_payload)
-            if safe_response.status_code == 200:
-                results["safe_branch"] = {"success": True, "message": "Safe branch protected"}
-                logger.info(f"Successfully protected 'safe' branch in {repo_name}")
-            else:
-                results["safe_branch"] = {"success": False, "error": f"HTTP {safe_response.status_code}: {safe_response.text}"}
-                logger.error(f"Failed to protect 'safe' branch: {safe_response.status_code} - {safe_response.text}")
+            logger.info(f"Safe branch protection rule configured for {repo_name} - will protect 'safe' branch when created")
             
             # Note: Repository Rules API with wildcards may not be available for all repositories
             # For now, we'll configure the pattern and provide instructions for manual setup

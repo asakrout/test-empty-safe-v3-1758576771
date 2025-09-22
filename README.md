@@ -1,3 +1,3 @@
-# test-safe-branch
+# test-clean-repo
 
-Testing safe branch protection with same rules as main
+Testing cleaned up branch protection setup
